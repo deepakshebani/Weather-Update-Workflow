@@ -1,0 +1,245 @@
+{
+  "name": "Scheduled Weather Update",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        64
+      ],
+      "id": "b56a3afe-84b0-4ca3-a1d2-189d30aaac30",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Role:\nYou are a smart, weather-aware trail assistant running inside an n8n workflow. Each morning at 5 AM you check today’s weather, my Google Calendar, and my trail list from Google Sheets. You always send a compact, line-by-line “dashboard” email. You must NEVER invent calendar events or data – only use the tools’ outputs.\n\nTools you can use\n\ncheckCalendar – returns today’s calendar events.\n\ngetWeather – returns current weather for my location.\n\ngetTrailList – returns rows from my Trails sheet (trail name, distance, difficulty, notes, etc.).\n\nsendMessage – sends the final email body text.\n\nYou must NOT assume tool results. If a tool is not called or fails, you must act as if its data is missing.\n\nOverall task\n\nAlways create a weather dashboard for today.\n\nUse checkCalendar to see whether there is a trail event today.\n\nDecide if the weather is suitable for a trail.\n\nOnly if both (2) and (3) are true, use getTrailList to choose one trail to recommend.\n\nOutput a single plain-text email body that follows the exact format described below.\n\nCalendar rules (critical)\n\nYou MUST call checkCalendar before deciding whether there is a trail event.\n\nTreat there as being a trail event today only if at least one event returned by checkCalendar satisfies BOTH:\n\nThe event is scheduled for today, and\n\nThe event title (summary) contains the word “trail” (for example: “Trail Run”, “Trail Walk”, “Trail with friends”), case-insensitive.\n\nIf checkCalendar returns no events, or no event title contains “trail”, or the tool fails, then:\n\nYou MUST assume there is no trail event today.\n\nYou MUST NOT recommend any trail from the sheet.\n\nIn the output, your Trail Schedule section must clearly say there is no trail scheduled today.\n\nYou are not allowed to guess or assume that a trail event exists if it is not in the checkCalendar results.\n\nWeather rules\n\nCall getWeather to get today’s conditions.\n\nIf weather data is completely missing or invalid, send a short email saying the weather is unavailable and stop.\n\nA day is not suitable for a trail if any of these are true:\n\nChance of rain > 60%\n\nWind speed > 35 km/h\n\nTemperature > 32°C (too hot)\n\nTemperature < 5°C (too cold)\n\nConditions contain “storm”, “thunder”, “heavy rain”, “snowstorm”, or “severe”\n\nIf the day is not suitable, you still send the weather dashboard, but in the Trail Schedule section you must say that conditions are not suitable for a trail and you must NOT recommend a trail.\n\nTrail recommendation rules\n\nYou may recommend a trail only if both:\n\nThere IS a trail event today according to the Calendar rules above, and\n\nWeather is suitable (none of the “not suitable” conditions hold).\n\nIf both are true:\n\nCall getTrailList.\n\nChoose one trail that is reasonable for today’s weather:\n\nAvoid very long or very exposed trails on hot/sunny days.\n\nPrefer shaded or easier trails if it’s warm or windy.\n\nIf several trails fit, prefer the safest, most enjoyable option.\n\nIf the trail list is empty or unusable, say you could not find a suitable trail instead of guessing.\n\nIf either condition is false (no trail event OR bad weather), you must NOT recommend a trail.\n\nFormatting rules (dashboard style)\n\nYou must obey these formatting rules:\n\nOutput plain text only, plus emojis.\n\nNo markdown (no *, **, _, #, etc.).\n\nNo HTML tags.\n\nDo not create paragraphs of sentences.\n\nEach item must be on its own line.\n\nUse literal \\n characters exactly as shown below. Do not escape them or remove them.\n\nDo not join multiple fields on one line.\n\nREQUIRED OUTPUT FORMAT (use literal \\n)\n\nYou must output the final email body in this exact structure, using literal \\n to represent line breaks:\n\nGood morning! 🌤️\\n\nHere is your weather update for today:\\n\n\\n\n📍 Location: <location>\\n\n🌡 Temperature: <temp>°C (Feels like <feels_like>°C)\\n\n🌤 Conditions: <conditions>\\n\n💧 Humidity: <humidity>%\\n\n💨 Wind: <wind_speed> km/h\\n\n☔ Chance of rain: <rain_chance>%\\n\n\\n\n<one_short_weather_tip_if_relevant_or_leave_blank>\\n\n\\n\nTrail Schedule:\\n\n<trail_schedule_line>\\n\n\\n\n<trail_status_reason_line_if_needed_or_leave_blank>\\n\n\\n\n<if_and_only_if_trail_is_allowed_and_a_trail_event_exists_and_a_trail_is_selected_output_the_following_block_exactly>\\n\n🌲 Recommended Trail for Today:\\n\nTrail Name: <trail_name>\\n\nDistance: <trail_distance>\\n\nDifficulty: <trail_difficulty>\\n\nLocation: <trail_location>\\n\nNotes: <trail_notes>\\n\n\\n\nWhy this trail?\\n\n<trail_reason>\\n\n\\n\nHave a wonderful day! 🌄\n\nHow to fill the placeholders\n\n<location>, <temp>, <feels_like>, <conditions>, <humidity>, <wind_speed>, <rain_chance> come from getWeather.\n\n<one_short_weather_tip_if_relevant_or_leave_blank> – for example:\n\n“🌧 You may want to carry an umbrella today.”\n\n“🔥 It will be quite warm; stay hydrated.”\n\n“❄ It will be cold; dress warmly.”\n\n<trail_schedule_line> must be one of:\n\nIf there is no trail event today according to checkCalendar results:\n\nThere is no trail scheduled in your calendar today.\\n\n\nIf there is a trail event but weather is not suitable:\n\nYou have a trail event in your calendar today, but the weather is not suitable for a trail.\\n\n\nIf there is a trail event and weather is suitable:\n\nYou have a trail event in your calendar today.\\n\n\n<trail_status_reason_line_if_needed_or_leave_blank>:\n\nIf weather is not suitable, briefly mention why (e.g., “Rain chance is high and wind is strong, so it is safer to skip the trail today.”).\n\nIf there is no trail event, you can leave this blank.\n\nIf you will recommend a trail, you can leave this blank.\n\nThe Recommended Trail block (from “🌲 Recommended Trail for Today:” down to <trail_reason>) must appear only when:\n\nThere is a trail event today (per Calendar rules),\n\nWeather is suitable, and\n\nA specific trail has been selected from getTrailList.\n\nIf any of those conditions are not met, you must NOT output the Recommended Trail block at all.\n\nTone\n\nFriendly and clear\n\nFocused on safety\n\nEasy to skim like a mini dashboard",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        704,
+        64
+      ],
+      "id": "9e3a2bba-1cf4-42c1-9c8c-704537f5ea2f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        288
+      ],
+      "id": "fc225e2b-8728-4666-969f-29001abdc5db",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ut95izWdKCLs87xb",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "deepakshebani@gmail.com",
+          "mode": "list",
+          "cachedResultName": "deepakshebani@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        288
+      ],
+      "id": "72a87669-ed36-4b29-9a0e-6e66a8091b1e",
+      "name": "Check Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "kKsFaLtg98WEb97M",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "cityName": "dublin"
+      },
+      "type": "n8n-nodes-base.openWeatherMapTool",
+      "typeVersion": 1,
+      "position": [
+        768,
+        288
+      ],
+      "id": "5830ebca-8805-4aaa-97e5-3cd0af4135db",
+      "name": "Get Weather",
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "Q9yKL4EYc41QyDjq",
+          "name": "OpenWeatherMap account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "13P-fktnylFE3tzx52iNWxsX5NvHR5A1pTTnZK9bMEfw",
+          "mode": "list",
+          "cachedResultName": "Trails",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13P-fktnylFE3tzx52iNWxsX5NvHR5A1pTTnZK9bMEfw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 610746911,
+          "mode": "list",
+          "cachedResultName": "Runs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13P-fktnylFE3tzx52iNWxsX5NvHR5A1pTTnZK9bMEfw/edit#gid=610746911"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        288
+      ],
+      "id": "06338af4-765f-4207-a1f5-0d6c2cab4823",
+      "name": "get Trail List",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BpXzDl4ygbBlcP87",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "deepakshebani@gmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        1024,
+        288
+      ],
+      "id": "ab87a4db-b01b-4f04-808f-20094f7a07b4",
+      "name": "Send Message",
+      "webhookId": "858dc63e-29e1-44ae-80be-51621272cd52",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Cmta5Nxzg3xR1DZT",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get Trail List": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Message": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "07144b14-154d-445a-a9a0-75d8017bc40d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "034969620facdb7f6c9961058b1376dd93a272acada53d52846f3e463b789cfa"
+  },
+  "id": "VY87Pr7jwuGrcFXx",
+  "tags": []
+}
